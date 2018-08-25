@@ -17,8 +17,9 @@ class webServerHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
-            if self.path.endswith("/categories"):
+            if self.path.endswith("/category"):
                 categories = session.query(Category).all()
+                print categories
                 output = ""
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
