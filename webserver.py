@@ -1,14 +1,17 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import cgi
 
+# import CRUD Operations from Lesson 1
 from database_setup import Base, Category, Recipe
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-engine = create_engine('sqlite:///recipe.db')
+# Create session and connect to DB
+engine = create_engine('sqlite:///category.db')
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
+
 
 class webServerHandler(BaseHTTPRequestHandler):
 
@@ -29,18 +32,17 @@ class webServerHandler(BaseHTTPRequestHandler):
                 self.wfile.write(output)
                 return
         except IOError:
-            self.send_error(404, 'File Not Found: %s' %  self.path)
+            self.send_error(404, 'File Not Found: %s' % self.path)
 
 
-    def main():
-        try:
-            server = HTTPServer(('',8080), webServerHandler)
-            print 'Web server runnning...open localhost:8080/categories in your browser'
-            server.serve_forever()
-        except KeyboardInterrupt:
-            print '^C received, shutting down server'
-            server.socket.close()
+def main():
+    try:
+        server = HTTPServer(('', 8080), webServerHandler)
+        print 'Web server running...open localhost:8080/category in your browser'
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print '^C received, shutting down server'
+        server.socket.close()
 
-    if __name__ == '__main__':
-        main()
-
+if __name__ == '__main__':
+    main()
