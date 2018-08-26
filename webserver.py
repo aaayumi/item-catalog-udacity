@@ -1,155 +1,72 @@
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-import cgi
-
-# import CRUD Operations from Lesson 1
-from database_setup import Base, Category, Recipe
+from flask import Flask, render_template, request,redirect,url_for,jsonify
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from database_setup import Base, Category, Recipe
+app = Flask(__name__)
 
-# Create session and connect to DB
-engine = create_engine('sqlite:///category.db')
+engine = create_engine('sqlite:///category.db',connect_args={'check_same_thread': False})
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 
-class webServerHandler(BaseHTTPRequestHandler):
+@app.route('/categories/<int:category_id>/menu/JSON')
+def categoryMenuJSON(category_id):
+    category = session.query(Category).filter_by(id=category_id).one()
+    items = session.query(Recipe).filter_by(
+        category_id=category_id).all()
+    return jsonify(Recipe=[i.serialize for i in items]
+    )
 
-    def do_GET(self):
-        try:
-            if self.path.endswith("/category/new"):
-                self.send_response(200)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                output = ""
-                output += "<html><body>"
-                output += "<h1>Make a new Category<h1>"
-                output += "<form method = 'POST' enctype='multipart/form-data' action = '/category/new'>"
-                output += "<input name = 'newCategoryName' type= 'text' placeholder='New Category Here'>"
-                output += "<input type='submit' value='Create'>"
-                output += "</form></body></html>"
-                self.wfile.write(output)
-                return
+@app.route('/category/<int:category_id>/menu/<int:recipe_id>/JSON')
+def recipeJSON(category_id, recipe_id):
+    recipe = session.query(Recipe).filter_by(id=recipe_id).one()
+    return jsonify(Recipe=recipe.serialize)
 
-            if self.path.endswith("/edit"):
-                categoryIDPath = self.path.split("/")[2]
-                myCategoryQuery = session.query(Category).filter_by(
-                    id=categoryIDPath).one()
-                if myCategoryQuery:
-                    self.send_response(200)
-                    self.send_header('Content-type', 'text/html')
-                    self.end_headers()
-                    output = "<html><body>"
-                    output += "<h1>"
-                    output += myCategoryQuery.name
-                    output += "<h1>"
-                    output += "<form method='POST' enctype='multipart/form-data' action = '/restaurants/%s/edit' >" % categoryIDPath
-                    output += "<input name= 'newCategoryName' type='text' placeholder='%s'>" % myCategoryQuery.name
-                    output += "</form>"
-                    output += "</body></html>"
+@app.route('/')
+@app.route('/categories/<int:category_id>/menu')
+def categoryList(category_id):
+    category = session.query(Category).filter_by(id=category_id).one()
+    recipes = session.query(Recipe).filter_by(category_id=category.id)
+    # output = "a"
+    return render_template('category.html', category=category, recipes=recipes)
 
-                    self.wfile.write(output)
+@app.route('/category/<int:category_id>/new/',methods=['GET','POST'])
+def newRecipe(category_id):
+   if request.method == 'POST':
+       newRecipe = Recipe(
+           name=request.form['name'], category_id=category_id)
+       session.add(newRecipe)
+       session.commit()
+       return redirect(url_for('categoryMenu', category_id=category_id))
+   else:
+       return render_template('add_recipe.html',category_id=category_id)
 
-            if self.path.endswith("/delete"):
-                categoryIDPath = self.path.split("/")[2]
+@app.route('/category/<int:category_id>/<int:recipe_id>/edit/',methods=['GET','POST'])
+def editRecipe(category_id, recipe_id):
+    editRecipe = session.query(Recipe).filter_by(id=recipe_id).one()
+    if request.method == 'POST':
+        if request.form['name']:
+            editRecipe.name = request.form['name']
+        session.add(editRecipe)
+        session.commit()
+        return redirect(url_for('categoryList', category_id=category_id))
+    else:
+        return render_template(
+            'edit_recipe.html', category_id=category_id, recipe_id=recipe_id, item=editRecipe)
 
-                myCategoryQuery = session.query(Category).filter_by(
-                    id=categoryIDPath).one()
-                if myCategoryQuery:
-                    self.send_response(200)
-                    self.send_header('Content-type','text/html')
-                    self.end_headers()
-                    output = ""
-                    output += "<html><body>"
-                    output += "<h1>Are you sure you want to delete %s?" % myCategoryQuery.name
-                    output += "<form method='POST' enctype= 'multipart/form-data' action='/category/%s/delete'>" % categoryIDPath
-                    output += "<input type='submit' value='Delete'>"
-                    output += "</form>"
-                    output += "</body></html>"
-                    self.wfile.write(output)
-
-            if self.path.endswith("/category"):
-                categories = session.query(Category).all()
-                output = ""
-                output += "<a href='/category/new'> Make a new Category here</a></br></br>"
-
-                self.send_response(200)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                output += "<html><body>"
-                for category in categories:
-                    output += "</br>"
-                    output += category.name
-                    output += "</br>"
-                    output += "<a href='/category/%s/edit'>Edit</a> " % category.id
-                    output += "</br>"
-                    output += "<a href='/category/%s/delete'>Delete</a>" % category.id
-                output += "</br>"
-                output += "</body></html>"
-                self.wfile.write(output)
-                return
-        except IOError:
-            self.send_error(404, 'File Not Found: %s' % self.path)
-
-    def do_POST(self):
-        try:
-            if self.path.endwith("/delete"):
-                categoryIDPath = self.path.split("/")[2]
-                myCategoryQuery = session.query(Category).filter_by(
-                    id=categoryIDPath).one()
-                if myCategoryQuery:
-                    session.delete(myCategoryQuery)
-                    session.commit()
-                    self.send_response(301)
-                    self.send_header('Content-type','text/html')
-                    self.send_header('Location','/category')
-                    self.end_headers()
-
-            if self.path.endswith("/edit"):
-                ctype, pdict = cgi.parse_header(
-                    self.headers.getheader('content-type'))
-                if ctype == 'multipart/form-data':
-                    fields = cgi.parse_multipart(self.rfile, pdict)
-                    messagecontent = fields.get('newCategoryName')
-                    categoryIDPath = self.path.split("/")[2]
-
-                    myCategoryQuery = session.query(Category).filter_by(
-                        id=categoryIDPath).one()
-                    if myCategoryQuery != []:
-                        myCategoryQuery.name = messagecontent[0]
-                        session.add(myCategoryQuery)
-                        session.commit()
-                        self.send_response(301)
-                        self.send_header('Content-type', 'text/html')
-                        self.send_header('Location','/category')
-                        self.end_headers()
-
-            if self.path.endwith("/category/new"):
-                ctype, pdict = cgi.parse_header(
-                    self.headers.getheader('content-type'))
-                if ctype == 'multipart/form-data':
-                    fields = cgi.parse_multipart(self.rfile, pdict)
-                    messagecontent = fields.get('newCategoryName')
-
-                    newCategory = Category(name=messagecontent[0])
-                    session.add(newCategory)
-                    session.commit()
-
-                    self.send_response(301)
-                    self.send_header('Content-type','text/html')
-                    self.send_header('Location','/category')
-                    self.end_headers()
-        except:
-            pass
-
-def main():
-    try:
-        server = HTTPServer(('', 8080), webServerHandler)
-        print 'Web server running...open localhost:8080/category in your browser'
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print '^C received, shutting down server'
-        server.socket.close()
+@app.route('/category/<int:category_id>/<int:recipe_id>/delete/', methods=['GET','POST'])
+def deleteRecipe(category_id, recipe_id):
+    deleteRecipe = session.query(Recipe).filter_by(id=recipe_id).one()
+    if request.method == 'POST':
+        session.delete(deleteRecipe)
+        session.commit()
+        return redirect(url_for('categoryList', category_id=category_id))
+    else:
+        return render_template(
+            'delete_recipe.html', item=deleteRecipe)
 
 if __name__ == '__main__':
-    main()
+    app.secret_key = 'super_secret_key'
+    app.debug = True
+    app.run(host='0.0.0.0', port=5000)
