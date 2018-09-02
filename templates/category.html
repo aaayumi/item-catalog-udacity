@@ -1,14 +1,11 @@
 <html>
 <body>
-<h1>{{category.name}}</h1>
+<h1>List</h1>
 
 {% for i in recipes %}
 <div>
     <p>{{i.name}}</p>
     <p>{{i.description}}</p>
-    <p>{{i.price}}</p>
-    <a href='{{url_for('editRecipe', category_id=category.id, recipe_id=i.id)}}'>Edit</a>
-    <a href='{{url_for('deleteRecipe',category_id=category.id, recipe_id=i.id)}}'>Delete</a>
 </div>
 {% endfor %}
 </body>

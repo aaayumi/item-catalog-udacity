@@ -27,20 +27,20 @@ session.add(category1)
 session.commit()
 
 recipe1 = Recipe(name="Veggie Burger", description="Juicy grilled veggie patty with tomato mayo and lettuce",
-                     price="$7.50", course="Entree", category=category1)
+                      category=category1)
 
 session.add(recipe1)
 session.commit()
 
 
 recipe2 = Recipe(name="French Fries", description="with garlic and parmesan",
-                     price="$2.99", course="Appetizer", category=category1)
+                     category=category1)
 
 session.add(recipe2)
 session.commit()
 
 recipe3 = Recipe(name="Chicken Burger", description="Juicy grilled chicken patty with tomato mayo and lettuce",
-                     price="$5.50", course="Entree", category=category1)
+                    category=category1)
 
 session.add(recipe3)
 session.commit()
@@ -54,7 +54,7 @@ session.commit()
 
 
 recipe1 = Recipe(name="Chicken Stir Fry", description="With your choice of noodles vegetables and sauces",
-                     price="$7.99", course="Entree", category=category2)
+                      category=category2)
 
 session.add(recipe1)
 session.commit()
