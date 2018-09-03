@@ -59,6 +59,7 @@ def gconnect():
     url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=%s'
            % access_token)
     h = httplib2.Http()
+    print 'In gconnect access token is %s', access_token
     result = json.loads(h.request(url, 'GET')[1])
     # If there was an error in the access token info, abort.
     if result.get('error') is not None:
@@ -115,6 +116,36 @@ def gconnect():
     print "done!"
     return output
 
+@app.route('/gdisconnect')
+def gdisconnect():
+    access_token = login_session['access_token']
+    print 'In gdisconnect access token is %s', access_token
+    print 'User name is: '
+    print login_session['username']
+    if access_token is None:
+        print 'Access Token Is None'
+        response = make_response(json.dumps('Current user not connected'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % login_session['access_token']
+    h = httplib2.Http()
+    result = h.request(url, 'GET')[0]
+    print 'result is '
+    print result
+    if result['status'] == '200':
+        del login_session['access_token']
+        del login_session['gplus_id']
+        del login_session['username']
+        del login_session['email']
+        del login_session['picture']
+        response = make_response(json.dumps('Successfully disconnected.'), 200)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    else:
+        response = make_response(json.dumps('Failed to revoke token for given user',400))
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
 ## JSON FILE
 @app.route('/categories/<int:category_id>/menu/JSON')
 def categoryMenuJSON(category_id):
@@ -148,13 +179,16 @@ def categoryList(category_id):
 
 @app.route('/categories/<int:category_id>/new',methods=['GET','POST'])
 def newRecipe(category_id):
-   if request.method == 'POST':
+    if 'username' not in login_session:
+        return redirect('/login')
+    category = session.query(Category).filter_by(id=category_id).one()
+    if request.method == 'POST':
        newRecipe = Recipe(
            name=request.form['name'], category_id=category_id)
        session.add(newRecipe)
        session.commit()
        return redirect(url_for('categoryList', category_id=category_id))
-   else:
+    else:
        return render_template('add_recipe.html',category_id=category_id)
 
 @app.route('/categories/<int:category_id>/<int:recipe_id>/edit/',methods=['GET','POST'])
