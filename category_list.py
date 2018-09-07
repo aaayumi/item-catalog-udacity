@@ -21,25 +21,25 @@ session = DBSession()
 
 
 # Menu for UrbanBurger
-category1 = Category(name="Urban Burger")
+category1 = Category(name="Curry")
 
 session.add(category1)
 session.commit()
 
-recipe1 = Recipe(name="Veggie Burger", description="Juicy grilled veggie patty with tomato mayo and lettuce",
+recipe1 = Recipe(name="Red Curry", description="Red curry is a popular Thai dish consisting of red curry paste cooked in coconut milk with meat added, such as chicken, beef, pork, duck or shrimp, or vegetarian protein source such as tofu.",
                       category=category1)
 
 session.add(recipe1)
 session.commit()
 
 
-recipe2 = Recipe(name="French Fries", description="with garlic and parmesan",
+recipe2 = Recipe(name="Chicken tikka masala", description="The sauce is usually creamy and orange-coloured.",
                      category=category1)
 
 session.add(recipe2)
 session.commit()
 
-recipe3 = Recipe(name="Chicken Burger", description="Juicy grilled chicken patty with tomato mayo and lettuce",
+recipe3 = Recipe(name="Chickin curry", description="curry with chickin",
                     category=category1)
 
 session.add(recipe3)
@@ -47,13 +47,13 @@ session.commit()
 
 
 # Menu for Super Stir Fry
-category2 = Category(name="Super Stir Fry")
+category2 = Category(name="Pizza")
 
 session.add(category2)
 session.commit()
 
 
-recipe1 = Recipe(name="Chicken Stir Fry", description="With your choice of noodles vegetables and sauces",
+recipe1 = Recipe(name="Margherita", description="Pizza Margherita is a typical Neapolitan pizza, made with San Marzano tomatoes, mozzarella fior di latte,[1] fresh basil, salt and extra-virgin olive oil.",
                       category=category2)
 
 session.add(recipe1)

@@ -1,0 +1,17 @@
+<html>
+<body>
+<h1>Your Recipe Catalog</h1>
+
+{% for i in categories %}
+<div>
+   <a href='{{url_for('categoryList',category_id = i.id )}}'><p>{{i.name}}</p></a>
+</div>
+{% endfor %}
+
+{% for i in recipes %}
+<div>
+    <p>{{i.name}}</p>
+</div>
+{% endfor %}
+</body>
+</html>

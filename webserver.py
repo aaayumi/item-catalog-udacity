@@ -162,26 +162,32 @@ def recipeJSON(category_id, recipe_id):
     return jsonify(Recipe=recipe.serialize)
 
 
-## SHOW ALL CATEGORY -- not working yet
+## SHOW
 @app.route('/')
-@app.route('/categories/')
+@app.route('/catalog/')
 def showCategories():
     categories = session.query(Category).all()
     recipes = session.query(Recipe).order_by(Recipe.id.desc())
-    return render_template('category.html', categories=categories, recipes=recipes)
+    return render_template('catalog.html', categories=categories, recipes=recipes)
 
 @app.route('/<int:category_id>')
-@app.route('/categories/<int:category_id>/menu')
+@app.route('/catalog/<int:category_id>')
 def categoryList(category_id):
     category = session.query(Category).filter_by(id=category_id).one()
     recipes = session.query(Recipe).filter_by(category_id=category_id)
     return render_template('category.html', category = category, category_id = category_id, recipes=recipes)
 
-@app.route('/categories/<int:category_id>/new',methods=['GET','POST'])
+@app.route('/catalog/<int:category_id>/<int:recipe_id>')
+def showRecipe(category_id, recipe_id):
+    showRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
+    return render_template('recipe.html', category_id=category_id, recipe_id=recipe_id, item=showRecipe)
+
+## ADD
+@app.route('/catalog/<int:category_id>/new',methods=['GET','POST'])
 def newRecipe(category_id):
     if 'username' not in login_session:
         return redirect('/login')
-    category = session.query(Category).filter_by(id=category_id).one()
+    category = session.query(Category).filter_by(id=category_id).one_or_none()
     if request.method == 'POST':
        newRecipe = Recipe(
            name=request.form['name'], category_id=category_id)
@@ -191,9 +197,10 @@ def newRecipe(category_id):
     else:
        return render_template('add_recipe.html',category_id=category_id)
 
-@app.route('/categories/<int:category_id>/<int:recipe_id>/edit/',methods=['GET','POST'])
+## EDIT
+@app.route('/catalog/<int:category_id>/<int:recipe_id>/edit',methods=['GET','POST'])
 def editRecipe(category_id, recipe_id):
-    editRecipe = session.query(Recipe).filter_by(id=recipe_id).one()
+    editRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
     if request.method == 'POST':
         if request.form['name']:
             editRecipe.name = request.form['name']
@@ -204,7 +211,8 @@ def editRecipe(category_id, recipe_id):
         return render_template(
             'edit_recipe.html', category_id=category_id, recipe_id=recipe_id, item=editRecipe)
 
-@app.route('/categories/<int:category_id>/<int:recipe_id>/delete/', methods=['GET','POST'])
+## DELETE
+@app.route('/catalog/<int:category_id>/<int:recipe_id>/delete', methods=['GET','POST'])
 def deleteRecipe(category_id, recipe_id):
     deleteRecipe = session.query(Recipe).filter_by(id=recipe_id).one()
     if request.method == 'POST':

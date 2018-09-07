@@ -1,7 +1,8 @@
 <html>
 <body>
-<h1>Delete a recipe</h1>
+<h2>Delete a recipe</h2>
 <form action="{{url_for('deleteRecipe', category_id= item.category_id, recipe_id = item.id)}}" method="POST">
+   <p>Do you really want to delete this recipe?</p>
    <input type="submit" value="Delete">
 </form>
 <a href="{{url_for('categoryList', category_id = item.category.id)}}">Cancel</a>
