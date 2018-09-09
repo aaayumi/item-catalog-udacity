@@ -31,17 +31,15 @@ class Recipe(Base):
     category_id = Column(Integer, ForeignKey('category.id'))
     category = relationship(Category)
 
-
     @property
     def serialize(self):
-
         return {
             'name': self.name,
             'description': self.description,
             'id': self.id,
         }
 
-engine = create_engine('sqlite:///category.db')
 
+engine = create_engine('sqlite:///category.db')
 
 Base.metadata.create_all(engine)

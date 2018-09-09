@@ -1,9 +1,19 @@
 <html>
+<head>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
+
+</head>
 <body>
+<div class="recipe-detail-page">
 <h2>{{item.name}}</h2>
 
 <div>
     <p>{{item.description}}</p>
+    <button class="edit-button" type="button"> <a href='{{url_for('editRecipe',category_id = item.id, recipe_id = item.id )}}'>Edit</a></button>
+    <button class="delete-button" type="button"> <a href='{{url_for('deleteRecipe',category_id = item.id, recipe_id = item.id )}}'>Delete</a></button>
+
 </div>
+    </div>
 </body>
 </html>

@@ -11,8 +11,8 @@
        <div class="grid-item">
     <h1>Recipe Catalog</h1></div>
              <div class="nav-grid-item">
-      <button class="login-button" type="button">
-<a href='{{url_for('gdisconnect')}}'>Logout</a>
+      <button class="login-button" type="button" class="btn btn-primary btn-lg">
+<a href='{{url_for('showLogin')}}'>Login</a>
             </button>
                   </div>
         </div>
@@ -33,7 +33,7 @@
 
 {% for i in recipes %}
 <div>
-    <p><a href='{{url_for('showRecipe', category_id = i.category_id, recipe_id = i.id )}}'>{{i.name}}</a></p>
+    <p><a href='{{url_for('showRecipe', category_id = i.id, recipe_id = i.id )}}'>{{i.name}}</a></p>
 </div>
 {% endfor %}
 </div>

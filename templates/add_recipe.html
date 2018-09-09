@@ -1,10 +1,20 @@
 <html>
+<head>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
+
+</head>
 <body>
-<h1>New Recipe</h1>
+<div class="new-recipe-page">
+<h1>Add Your Recipe</h1>
 <form action="{{url_for('newRecipe',category_id=category_id)}}" method='POST'>
     <p>Name:</p>
-    <input type='text' size='30' name='name'>
-    <input type="submit" value="Create">
+    <input class="add-recipe-name" type='text' size='30' name='name'>
+    <p>Description:</p>
+    <textarea class="add-recipe-description" name="description" cols="40" rows="5"></textarea>
+    <button type="submit" value="Create">Create</button>
 </form>
+<button class="delete-button" type="button"><a href='{{url_for('categoryList',category_id = category_id)}}'>Cancel</a></button>
+</div>
 </body>
 </html>
