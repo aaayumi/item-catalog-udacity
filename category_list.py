@@ -15,7 +15,9 @@ session.add(category1)
 session.commit()
 
 recipe1 = Recipe(name="Red Curry",
-                 description="Red curry is a popular Thai dish consisting of red curry paste cooked in coconut milk with meat added, such as chicken, beef, pork, duck or shrimp, or vegetarian protein source such as tofu.",
+                 description="Red curry is a popular Thai dish consisting of red curry paste cooked in coconut milk"
+                             " with meat added, such as chicken, beef, pork, duck or shrimp, or vegetarian protein "
+                             "source such as tofu.",
                  category=category1)
 
 session.add(recipe1)
@@ -39,7 +41,8 @@ session.add(category2)
 session.commit()
 
 recipe1 = Recipe(name="Margherita",
-                 description="Pizza Margherita is a typical Neapolitan pizza, made with San Marzano tomatoes, mozzarella fior di latte,[1] fresh basil, salt and extra-virgin olive oil.",
+                 description="Pizza Margherita is a typical Neapolitan pizza, made with San Marzano tomatoes, "
+                             "mozzarella fior di latte,[1] fresh basil, salt and extra-virgin olive oil.",
                  category=category2)
 
 session.add(recipe1)

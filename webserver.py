@@ -20,7 +20,8 @@ CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
 APPLICATION_NAME = "Restaurant Menu Application"
 
-engine = create_engine('sqlite:///category.db', connect_args={'check_same_thread': False})
+engine = create_engine('sqlite:///category.db',
+                       connect_args={'check_same_thread': False})
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
@@ -114,7 +115,8 @@ def gconnect():
     output += '!</h1>'
     output += '<img src="'
     output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;' \
+              '-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
     print "done!"
     return output
 
@@ -150,7 +152,7 @@ def gdisconnect():
         return response
 
 
-## JSON FILE
+# JSON FILE
 @app.route('/categories/<int:category_id>/JSON')
 def categoryMenuJSON(category_id):
     category = session.query(Category).filter_by(id=category_id).one()
@@ -167,7 +169,7 @@ def recipeJSON(category_id, recipe_id):
     return jsonify(Recipe=recipe.serialize)
 
 
-## MAIN PAGE
+# MAIN PAGE
 @app.route('/')
 @app.route('/catalog/')
 def showCategories():
@@ -179,7 +181,7 @@ def showCategories():
         return render_template('catalog.html', categories=categories, recipes=recipes)
 
 
-## SHOW CATEGORY PAGE
+# SHOW CATEGORY PAGE
 @app.route('/<int:category_id>')
 @app.route('/catalog/<int:category_id>')
 def categoryList(category_id):
@@ -188,14 +190,14 @@ def categoryList(category_id):
     return render_template('category.html', category=category, category_id=category_id, recipes=recipes)
 
 
-## SHOW RECIPE PAGE
+# SHOW RECIPE PAGE
 @app.route('/catalog/<int:category_id>/<int:recipe_id>')
 def showRecipe(category_id, recipe_id):
     showRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
     return render_template('recipe.html', category_id=category_id, recipe_id=recipe_id, item=showRecipe)
 
 
-## ADD RECIPE PAGE
+# ADD RECIPE PAGE
 @app.route('/catalog/<int:category_id>/new', methods=['GET', 'POST'])
 def newRecipe(category_id):
     if 'username' not in login_session:
@@ -213,10 +215,15 @@ def newRecipe(category_id):
         return render_template('add_recipe.html', category_id=category_id)
 
 
-## EDIT RECIPE PAGE
+# EDIT RECIPE PAGE
 @app.route('/catalog/<int:category_id>/<int:recipe_id>/edit', methods=['GET', 'POST'])
 def editRecipe(category_id, recipe_id):
     editRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
+
+    # Authentication check
+    if 'username' not in login_session:
+        return redirect('/login')
+
     if request.method == 'POST':
         if request.form['name']:
             editRecipe.name = request.form['name']
@@ -228,10 +235,15 @@ def editRecipe(category_id, recipe_id):
             'edit_recipe.html', category_id=category_id, recipe_id=recipe_id, item=editRecipe)
 
 
-## DELETE RECIPE PAGE
+# DELETE RECIPE PAGE
 @app.route('/catalog/<int:category_id>/<int:recipe_id>/delete', methods=['GET', 'POST'])
 def deleteRecipe(category_id, recipe_id):
     deleteRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
+
+    # Authentication check
+    if 'username' not in login_session:
+        return redirect('/login')
+
     if request.method == 'POST':
         session.delete(deleteRecipe)
         session.commit()
