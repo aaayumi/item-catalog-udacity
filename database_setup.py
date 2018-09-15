@@ -8,7 +8,26 @@ from sqlalchemy import create_engine
 Base = declarative_base()
 
 
+class User(Base):
+    """User data
+      Returns:
+          user_id,
+          user_name,
+          user_email
+          """
+    __tablename__ = 'user'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(250), nullable=False)
+    email = Column(String(250), nullable=False)
+
+
 class Category(Base):
+    """Category data
+      Returns:
+         category_id,
+         category_name
+          """
     __tablename__ = 'category'
 
     id = Column(Integer, primary_key=True)
@@ -23,6 +42,13 @@ class Category(Base):
 
 
 class Recipe(Base):
+    """Recipe data
+       Returns:
+          recipe_name,
+          recipe_id,
+          recipe_description,
+          category_id
+           """
     __tablename__ = 'recipe'
 
     name = Column(String(80), nullable=False)

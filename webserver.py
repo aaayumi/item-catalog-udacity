@@ -1,7 +1,12 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import (Flask,
+                   render_template,
+                   request,
+                   redirect,
+                   url_for,
+                   jsonify)
 from sqlalchemy import create_engine, asc
 from sqlalchemy.orm import sessionmaker
-from database_setup import Base, Category, Recipe
+from database_setup import Base, Category, Recipe, User
 
 from flask import session as login_session
 import random
@@ -25,6 +30,22 @@ engine = create_engine('sqlite:///category.db',
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
+
+# Create User
+
+
+def createUser(login_session):
+    newUser = User(name=login_session['username'],
+                   email=login_session['email'])
+    session.add(newUser)
+    session.commit()
+    user = session.query(User).filter_by(email=login_session['email']).one()
+    return user.id
+
+
+def getUserID(user_id):
+    user = session.query(User).filter_by(id=user_id).one()
+    return user
 
 
 @app.route('/login')
@@ -89,7 +110,8 @@ def gconnect():
     stored_access_token = login_session.get('access_token')
     stored_gplus_id = login_session.get('gplus_id')
     if stored_access_token is not None and gplus_id == stored_gplus_id:
-        response = make_response(json.dumps('Current user is already connected.'),
+        response = make_response(json.dumps
+                                 ('Current user is already connected.'),
                                  200)
         response.headers['Content-Type'] = 'application/json'
         return response
@@ -108,6 +130,7 @@ def gconnect():
     login_session['username'] = data['name']
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
+    login_session['user_id'] = createUser(login_session)
 
     output = ''
     output += '<h1>Welcome, '
@@ -132,7 +155,8 @@ def gdisconnect():
         response = make_response(json.dumps('Current user not connected'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
-    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % login_session['access_token']
+    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' \
+          % login_session['access_token']
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
     print 'result is '
@@ -145,9 +169,13 @@ def gdisconnect():
         del login_session['picture']
         categories = session.query(Category).all()
         recipes = session.query(Recipe).order_by(Recipe.id.desc()).limit(5)
-        return render_template('public_catalog.html', categories=categories, recipes=recipes)
+        return render_template('public_catalog.html',
+                               categories=categories,
+                               recipes=recipes)
     else:
-        response = make_response(json.dumps('Failed to revoke token for given user', 400))
+        response = make_response(json.dumps
+                                 ('Failed to revoke token for given user'),
+                                 400)
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -176,9 +204,13 @@ def showCategories():
     categories = session.query(Category).all()
     recipes = session.query(Recipe).order_by(Recipe.id.desc()).limit(5)
     if 'username' not in login_session:
-        return render_template('public_catalog.html', categories=categories, recipes=recipes)
+        return render_template('public_catalog.html',
+                               categories=categories,
+                               recipes=recipes)
     else:
-        return render_template('catalog.html', categories=categories, recipes=recipes)
+        return render_template('catalog.html',
+                               categories=categories,
+                               recipes=recipes)
 
 
 # SHOW CATEGORY PAGE
@@ -187,42 +219,74 @@ def showCategories():
 def categoryList(category_id):
     category = session.query(Category).filter_by(id=category_id).one_or_none()
     recipes = session.query(Recipe).filter_by(category_id=category_id)
-    return render_template('category.html', category=category, category_id=category_id, recipes=recipes)
+    return render_template('category.html',
+                           category=category,
+                           category_id=category_id,
+                           recipes=recipes)
 
 
 # SHOW RECIPE PAGE
 @app.route('/catalog/<int:category_id>/<int:recipe_id>')
 def showRecipe(category_id, recipe_id):
     showRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
-    return render_template('recipe.html', category_id=category_id, recipe_id=recipe_id, item=showRecipe)
+    return render_template('recipe.html',
+                           category_id=category_id,
+                           recipe_id=recipe_id,
+                           item=showRecipe)
 
 
 # ADD RECIPE PAGE
 @app.route('/catalog/<int:category_id>/new', methods=['GET', 'POST'])
-def newRecipe(category_id):
+def newRecipe(category_id, user_id):
+    """Create new recipe to the database
+    Returns:
+        on GET: Page to create a new recipe.
+        Authentication: Redirect to Login page if user is not signed in.
+        on POST: Redirect to main page after recipe has been created.
+        """
     if 'username' not in login_session:
         return redirect('/login')
-    category = session.query(Category).filter_by(id=category_id).one_or_none()
+
     if request.method == 'POST':
         newRecipe = Recipe(
             name=request.form['name'],
             description=request.form['description'],
-            category_id=category_id)
+            category_id=category_id,
+            user_id=user_id),
         session.add(newRecipe)
         session.commit()
-        return redirect(url_for('categoryList', category_id=category_id))
+        return redirect(url_for('categoryList',
+                                category_id=category_id))
     else:
-        return render_template('add_recipe.html', category_id=category_id)
+        return render_template('add_recipe.html',
+                               category_id=category_id)
 
 
 # EDIT RECIPE PAGE
-@app.route('/catalog/<int:category_id>/<int:recipe_id>/edit', methods=['GET', 'POST'])
+@app.route('/catalog/<int:category_id>/<int:recipe_id>/edit',
+           methods=['GET', 'POST'])
 def editRecipe(category_id, recipe_id):
-    editRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
+    """Edit the recipe that the user created
+      Returns:
+          on GET: Page to create a edit recipe.
+          Authentication: Redirect to Login page if user is not signed in.
+          Authorization: Redirect to main page
+                         if user is not the owner of recipe.
+          on POST: Redirect to main page after recipe has been edited.
+          """
 
     # Authentication check
     if 'username' not in login_session:
         return redirect('/login')
+
+    editRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
+
+    # Authorization check
+    ownerUser = getUserID(editRecipe.user)
+    user = getUserID(login_session['user_id'])
+
+    if ownerUser.id != login_session['user_id']:
+        redirect(url_for('categoryList', category_id=category_id))
 
     if request.method == 'POST':
         if request.form['name']:
@@ -232,22 +296,42 @@ def editRecipe(category_id, recipe_id):
         return redirect(url_for('categoryList', category_id=category_id))
     else:
         return render_template(
-            'edit_recipe.html', category_id=category_id, recipe_id=recipe_id, item=editRecipe)
+            'edit_recipe.html', category_id=category_id,
+            recipe_id=recipe_id,
+            item=editRecipe)
 
 
 # DELETE RECIPE PAGE
-@app.route('/catalog/<int:category_id>/<int:recipe_id>/delete', methods=['GET', 'POST'])
+@app.route('/catalog/<int:category_id>/<int:recipe_id>/delete',
+           methods=['GET', 'POST'])
 def deleteRecipe(category_id, recipe_id):
-    deleteRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
+    """Delete the recipe that the user created
+       Returns:
+           on GET: Page to create a delete recipe.
+           Authentication: Redirect to Login page if user is not signed in.
+           Authorization: Redirect to main page
+           if user is not the owner of recipe.
+           on POST: Redirect to main page after recipe has been deleted.
+           """
 
     # Authentication check
     if 'username' not in login_session:
         return redirect('/login')
 
+    deleteRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
+
+    # Authorization check
+    ownerUser = getUserID(deleteRecipe.user)
+    user = getUserID(login_session['user_id'])
+
+    if ownerUser.id != login_session['user_id']:
+        redirect(url_for('categoryList', category_id=category_id))
+
     if request.method == 'POST':
         session.delete(deleteRecipe)
         session.commit()
-        return redirect(url_for('categoryList', category_id=category_id))
+        return redirect(url_for('categoryList',
+                                category_id=category_id))
     else:
         return render_template(
             'delete_recipe.html', item=deleteRecipe)
