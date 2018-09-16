@@ -21,6 +21,13 @@ class User(Base):
     name = Column(String(250), nullable=False)
     email = Column(String(250), nullable=False)
 
+    @property
+    def serialize(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'email': self.email
+        }
 
 class Category(Base):
     """Category data
@@ -56,6 +63,8 @@ class Recipe(Base):
     description = Column(String(250))
     category_id = Column(Integer, ForeignKey('category.id'))
     category = relationship(Category)
+    user_id = Column(Integer,ForeignKey('user.id'))
+    user = relationship(User)
 
     @property
     def serialize(self):
