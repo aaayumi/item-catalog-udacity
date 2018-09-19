@@ -12,6 +12,11 @@
     <input class="add-recipe-name" type='text' size='30' name='name'>
     <p>Description:</p>
     <textarea class="add-recipe-description" name="description" cols="40" rows="5"></textarea>
+    <p>Category</p>
+    <select name="categories_id">
+        <option value=1>Curry</option>
+        <option value=2>Pizza</option>
+    </select>
     <button type="submit" value="Create">Create</button>
 </form>
 <button class="delete-button" type="button"><a href='{{url_for('categoryList',category_id = category_id)}}'>Cancel</a></button>

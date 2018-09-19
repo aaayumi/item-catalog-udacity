@@ -237,7 +237,7 @@ def showRecipe(category_id, recipe_id):
 
 # ADD RECIPE PAGE
 @app.route('/catalog/<int:category_id>/new', methods=['GET', 'POST'])
-def newRecipe(category_id, user_id):
+def newRecipe(category_id):
     """Create new recipe to the database
     Returns:
         on GET: Page to create a new recipe.
@@ -251,8 +251,8 @@ def newRecipe(category_id, user_id):
         newRecipe = Recipe(
             name=request.form['name'],
             description=request.form['description'],
-            category_id=category_id,
-            user_id=user_id),
+            category_id=request.form['categories_id'],
+            user_id=login_session['user_id'])
         session.add(newRecipe)
         session.commit()
         return redirect(url_for('categoryList',
@@ -282,15 +282,15 @@ def editRecipe(category_id, recipe_id):
     editRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
 
     # Authorization check
-    ownerUser = getUserID(editRecipe.user)
-    user = getUserID(login_session['user_id'])
-
-    if ownerUser.id != login_session['user_id']:
+    if editRecipe.user_id != login_session['user_id']:
         redirect(url_for('categoryList', category_id=category_id))
 
     if request.method == 'POST':
-        if request.form['name']:
+        if request.form['name'] == "":
+            editRecipe.name = editRecipe.name
+        else:
             editRecipe.name = request.form['name']
+
         session.add(editRecipe)
         session.commit()
         return redirect(url_for('categoryList', category_id=category_id))
@@ -321,10 +321,7 @@ def deleteRecipe(category_id, recipe_id):
     deleteRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
 
     # Authorization check
-    ownerUser = getUserID(deleteRecipe.user)
-    user = getUserID(login_session['user_id'])
-
-    if ownerUser.id != login_session['user_id']:
+    if deleteRecipe.user_id != login_session['user_id']:
         redirect(url_for('categoryList', category_id=category_id))
 
     if request.method == 'POST':

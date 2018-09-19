@@ -7,7 +7,7 @@
 <body>
 <div class="edit-recipe-page">
 <h2>Edit your recipe</h2>
-<form action="{{url_for('editRecipe',category_id=category_id, recipe_id=item.id)}}" method='POST'>
+<form action="{{url_for('editRecipe',category_id=category_id, recipe_id=item.id, item=editRecipe)}}" method='POST'>
     <p>Name:</p>
     <input class="edit-recipe-name" type='text' size='10' name='name' placeholder="{{item.name}}">
      <p>Description:</p>
