@@ -3,7 +3,9 @@ from flask import (Flask,
                    request,
                    redirect,
                    url_for,
-                   jsonify)
+                   jsonify,
+                   make_response)
+from functools import wraps
 from sqlalchemy import create_engine, asc
 from sqlalchemy.orm import sessionmaker
 from database_setup import Base, Category, Recipe, User
@@ -16,7 +18,6 @@ from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 import httplib2
 import json
-from flask import make_response
 import requests
 
 app = Flask(__name__)
@@ -31,10 +32,10 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
+
 # Create User
-
-
 def createUser(login_session):
+    """Create a new user and store it in User DB"""
     newUser = User(name=login_session['username'],
                    email=login_session['email'])
     session.add(newUser)
@@ -42,14 +43,19 @@ def createUser(login_session):
     user = session.query(User).filter_by(email=login_session['email']).one()
     return user.id
 
-
-def getUserID(user_id):
-    user = session.query(User).filter_by(id=user_id).one()
-    return user
-
+def login_required(func):
+    """Decorator to check if user is logged in"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if 'username' not in login_session:
+            return redirect('/login')
+        else:
+            return func(*args, **kwargs)
+    return wrapper
 
 @app.route('/login')
 def showLogin():
+    """Redirect to login page"""
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in xrange(32))
     login_session['state'] = state
@@ -59,6 +65,7 @@ def showLogin():
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
+    """Get user's information for login"""
     # Validate state token
     if request.args.get('state') != login_session['state']:
         response = make_response(json.dumps('Invalid state parameter.'), 401)
@@ -83,7 +90,6 @@ def gconnect():
     url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=%s'
            % access_token)
     h = httplib2.Http()
-    print 'In gconnect access token is %s', access_token
     result = json.loads(h.request(url, 'GET')[1])
     # If there was an error in the access token info, abort.
     if result.get('error') is not None:
@@ -146,6 +152,7 @@ def gconnect():
 
 @app.route('/gdisconnect')
 def gdisconnect():
+    """Use Google Sign In API to allow login"""
     access_token = login_session['access_token']
     print 'In gdisconnect access token is %s', access_token
     print 'User name is: '
@@ -183,6 +190,7 @@ def gdisconnect():
 # JSON FILE
 @app.route('/categories/<int:category_id>/JSON')
 def categoryMenuJSON(category_id):
+    """JSON file for each category"""
     category = session.query(Category).filter_by(id=category_id).one()
     items = session.query(Recipe).filter_by(
         category_id=category_id).all()
@@ -192,8 +200,8 @@ def categoryMenuJSON(category_id):
 
 @app.route('/categories/<int:category_id>/<int:recipe_id>/JSON')
 def recipeJSON(category_id, recipe_id):
+    """JSON file for each recipe"""
     recipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
-    print(recipe)
     return jsonify(Recipe=recipe.serialize)
 
 
@@ -201,22 +209,22 @@ def recipeJSON(category_id, recipe_id):
 @app.route('/')
 @app.route('/catalog/')
 def showCategories():
+    """Show category for not loggined user,
+       show category with adding capability for loginned user"""
     categories = session.query(Category).all()
     recipes = session.query(Recipe).order_by(Recipe.id.desc()).limit(5)
-    if 'username' not in login_session:
-        return render_template('public_catalog.html',
-                               categories=categories,
-                               recipes=recipes)
-    else:
-        return render_template('catalog.html',
-                               categories=categories,
-                               recipes=recipes)
+    is_logged_in = 'username' not in login_session
+    return render_template('catalog.html',
+                           categories=categories,
+                           recipes=recipes,
+                           is_logged_in=is_logged_in)
 
 
 # SHOW CATEGORY PAGE
 @app.route('/<int:category_id>')
 @app.route('/catalog/<int:category_id>')
 def categoryList(category_id):
+    """Show all categories and latest added recipes"""
     category = session.query(Category).filter_by(id=category_id).one_or_none()
     recipes = session.query(Recipe).filter_by(category_id=category_id)
     return render_template('category.html',
@@ -228,6 +236,7 @@ def categoryList(category_id):
 # SHOW RECIPE PAGE
 @app.route('/catalog/<int:category_id>/<int:recipe_id>')
 def showRecipe(category_id, recipe_id):
+    """Show recipes per category"""
     showRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
     return render_template('recipe.html',
                            category_id=category_id,
@@ -237,6 +246,7 @@ def showRecipe(category_id, recipe_id):
 
 # ADD RECIPE PAGE
 @app.route('/catalog/<int:category_id>/new', methods=['GET', 'POST'])
+@login_required
 def newRecipe(category_id):
     """Create new recipe to the database
     Returns:
@@ -244,8 +254,6 @@ def newRecipe(category_id):
         Authentication: Redirect to Login page if user is not signed in.
         on POST: Redirect to main page after recipe has been created.
         """
-    if 'username' not in login_session:
-        return redirect('/login')
 
     if request.method == 'POST':
         newRecipe = Recipe(
@@ -265,6 +273,7 @@ def newRecipe(category_id):
 # EDIT RECIPE PAGE
 @app.route('/catalog/<int:category_id>/<int:recipe_id>/edit',
            methods=['GET', 'POST'])
+@login_required
 def editRecipe(category_id, recipe_id):
     """Edit the recipe that the user created
       Returns:
@@ -274,10 +283,6 @@ def editRecipe(category_id, recipe_id):
                          if user is not the owner of recipe.
           on POST: Redirect to main page after recipe has been edited.
           """
-
-    # Authentication check
-    if 'username' not in login_session:
-        return redirect('/login')
 
     editRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
 
@@ -304,6 +309,7 @@ def editRecipe(category_id, recipe_id):
 # DELETE RECIPE PAGE
 @app.route('/catalog/<int:category_id>/<int:recipe_id>/delete',
            methods=['GET', 'POST'])
+@login_required
 def deleteRecipe(category_id, recipe_id):
     """Delete the recipe that the user created
        Returns:
@@ -313,10 +319,6 @@ def deleteRecipe(category_id, recipe_id):
            if user is not the owner of recipe.
            on POST: Redirect to main page after recipe has been deleted.
            """
-
-    # Authentication check
-    if 'username' not in login_session:
-        return redirect('/login')
 
     deleteRecipe = session.query(Recipe).filter_by(id=recipe_id).one_or_none()
 
